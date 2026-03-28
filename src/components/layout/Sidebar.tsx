@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import {
   RiDashboardLine, RiTicketLine, RiAddLine,
   RiUserLine, RiBarChartLine, RiLogoutBoxLine,
-  RiShieldLine, RiTeamLine
+  RiShieldLine, RiTeamLine, RiGroupLine
 } from 'react-icons/ri';
 import clsx from 'clsx';
 
@@ -24,6 +24,7 @@ const navItems = {
     { href: '/dashboard', label: 'Dashboard', icon: RiDashboardLine },
     { href: '/admin/tickets', label: 'All Tickets', icon: RiTicketLine },
     { href: '/admin/vendors', label: 'Vendors', icon: RiTeamLine },
+    { href: '/admin/users', label: 'Users', icon: RiGroupLine },
     { href: '/admin/reports', label: 'Reports', icon: RiBarChartLine },
   ],
 };

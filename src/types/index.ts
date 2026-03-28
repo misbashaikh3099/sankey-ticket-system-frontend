@@ -26,6 +26,7 @@ export interface Ticket {
   resolvedAt?: string;
   resolutionNotes?: string;
   resolutionTimeHours?: number;
+  resolveReason?: string; // Vendor's reason when marking ticket as RESOLVED
 }
 
 export interface TicketHistory {

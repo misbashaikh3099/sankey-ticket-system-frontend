@@ -27,8 +27,11 @@ export const ticketApi = {
     return res.data;
   },
 
-  updateStatus: async (ticketId: string, status: string) => {
-    const res = await api.put(`/tickets/${ticketId}/status/${status}`);
+  // resolveReason is required when status = RESOLVED (vendor popup)
+  // CLOSED is only allowed when current status is RESOLVED (buyer confirmation)
+  updateStatus: async (ticketId: string, status: string, resolveReason?: string) => {
+    const body = resolveReason ? { resolveReason } : {};
+    const res = await api.put(`/tickets/${ticketId}/status/${status}`, body);
     return res.data;
   },
 

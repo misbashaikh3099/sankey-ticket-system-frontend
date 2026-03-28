@@ -13,14 +13,6 @@ import { formatDateTime } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { RiArrowLeftLine, RiTimeLine, RiUserLine, RiTeamLine } from 'react-icons/ri';
 
-const ALL_STATUSES = [
-  { value: 'OPEN', label: 'Open' },
-  { value: 'ASSIGNED', label: 'Assigned' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'RESOLVED', label: 'Resolved' },
-  { value: 'CLOSED', label: 'Closed' },
-];
-
 export default function AdminTicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -29,9 +21,7 @@ export default function AdminTicketDetailPage() {
   const [vendors, setVendors] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVendor, setSelectedVendor] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
   const [assigning, setAssigning] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => { loadAll(); }, [id]);
 
@@ -46,7 +36,6 @@ export default function AdminTicketDetailPage() {
       setTicket(t);
       setHistory(h);
       setVendors(v);
-      setSelectedStatus(t.status);
     } catch {
       toast.error('Failed to load ticket');
     } finally {
@@ -65,20 +54,6 @@ export default function AdminTicketDetailPage() {
       toast.error('Failed to assign vendor');
     } finally {
       setAssigning(false);
-    }
-  };
-
-  const handleStatusUpdate = async () => {
-    if (!selectedStatus || selectedStatus === ticket?.status) return;
-    setUpdatingStatus(true);
-    try {
-      await ticketApi.updateStatus(id, selectedStatus);
-      toast.success(`Status updated to ${selectedStatus}`);
-      loadAll();
-    } catch {
-      toast.error('Failed to update status');
-    } finally {
-      setUpdatingStatus(false);
     }
   };
 
@@ -115,12 +90,20 @@ export default function AdminTicketDetailPage() {
             <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
               {ticket.description || 'No description provided.'}
             </p>
+
+            {/* Show resolve reason if ticket was resolved */}
+            {ticket.resolveReason && (
+              <div className="mt-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <p className="text-xs font-semibold text-emerald-400 mb-1">Vendor Resolution Note</p>
+                <p className="text-sm text-emerald-200">{ticket.resolveReason}</p>
+              </div>
+            )}
           </Card>
           <TicketComments ticketId={id} />
         </div>
 
         <div className="space-y-4">
-          
+          {/* ADMIN CAN ONLY ASSIGN VENDOR — no status update panel */}
           <Card className="p-5">
             <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-display)' }}>
               <RiTeamLine className="text-violet-400" /> Assign Vendor
@@ -144,30 +127,6 @@ export default function AdminTicketDetailPage() {
             </div>
           </Card>
 
-          
-          <Card className="p-5">
-            <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>
-              Update Status
-            </h3>
-            <div className="space-y-3">
-              <Select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                options={ALL_STATUSES}
-              />
-              <Button
-                onClick={handleStatusUpdate}
-                loading={updatingStatus}
-                disabled={selectedStatus === ticket.status}
-                className="w-full"
-                size="sm"
-              >
-                Update Status
-              </Button>
-            </div>
-          </Card>
-
-   
           <Card className="p-5">
             <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>Details</h3>
             <div className="space-y-3 text-sm">

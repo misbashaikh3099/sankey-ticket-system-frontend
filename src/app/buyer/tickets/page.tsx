@@ -8,8 +8,64 @@ import { ticketApi } from '@/lib/ticketApi';
 import { Ticket } from '@/types';
 import { Card, PageHeader, Button, Spinner, PriorityBadge, StatusBadge, EmptyState } from '@/components/ui';
 import { timeAgo } from '@/lib/utils';
-import { RiAddLine, RiSearchLine, RiArrowRightLine } from 'react-icons/ri';
+import { RiAddLine, RiSearchLine, RiArrowRightLine, RiCloseLine, RiCheckLine } from 'react-icons/ri';
 import toast from 'react-hot-toast';
+
+// Inline close confirmation modal
+function CloseConfirmModal({
+  ticketTitle,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  ticketTitle: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
+      <div
+        className="relative z-10 w-full max-w-sm mx-4 p-6 rounded-2xl border"
+        style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}
+      >
+        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 mx-auto mb-4">
+          <RiCloseLine className="text-red-400 text-2xl" />
+        </div>
+        <h3 className="text-lg font-bold text-white text-center mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+          Close Ticket
+        </h3>
+        <p className="text-sm text-slate-400 text-center mb-1">Are you sure you want to close</p>
+        <p className="text-sm font-semibold text-white text-center mb-5 truncate px-2">"{ticketTitle}"?</p>
+        <p className="text-xs text-amber-400 text-center mb-6">
+          Once closed, this ticket cannot be reopened.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 border border-white/10 hover:bg-white/5 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            ) : (
+              <>
+                <RiCheckLine /> Yes, Close
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function BuyerTicketsPage() {
   const { user } = useAuth();
@@ -18,6 +74,8 @@ export default function BuyerTicketsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [closingTicket, setClosingTicket] = useState<Ticket | null>(null);
+  const [closeLoading, setCloseLoading] = useState(false);
 
   useEffect(() => {
     if (user) fetchTickets();
@@ -43,15 +101,24 @@ export default function BuyerTicketsPage() {
     }
   };
 
-  const handleClose = async (ticketId: string, e: React.MouseEvent) => {
+  const handleCloseRequest = (ticket: Ticket, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setClosingTicket(ticket);
+  };
+
+  const handleCloseConfirm = async () => {
+    if (!closingTicket) return;
+    setCloseLoading(true);
     try {
-      await ticketApi.updateStatus(ticketId, 'CLOSED');
+      await ticketApi.updateStatus(closingTicket.id, 'CLOSED');
       toast.success('Ticket closed');
+      setClosingTicket(null);
       fetchTickets();
-    } catch {
-      toast.error('Failed to close ticket');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to close ticket');
+    } finally {
+      setCloseLoading(false);
     }
   };
 
@@ -68,7 +135,6 @@ export default function BuyerTicketsPage() {
           </Link>
         }
       />
-
 
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="relative flex-1 min-w-48">
@@ -124,12 +190,14 @@ export default function BuyerTicketsPage() {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <PriorityBadge priority={ticket.priority} />
                   <StatusBadge status={ticket.status} />
-                  {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && (
+
+                  {/* Close button ONLY for RESOLVED tickets */}
+                  {ticket.status === 'RESOLVED' && (
                     <button
-                      onClick={(e) => handleClose(ticket.id, e)}
-                      className="ml-2 px-2.5 py-1 text-xs rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors border border-red-500/20"
+                      onClick={(e) => handleCloseRequest(ticket, e)}
+                      className="ml-2 px-2.5 py-1 text-xs rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors border border-red-500/20 flex items-center gap-1"
                     >
-                      Close
+                      <RiCloseLine /> Close
                     </button>
                   )}
                   <RiArrowRightLine className="text-slate-600 group-hover:text-brand-400 transition-colors" />
@@ -139,6 +207,16 @@ export default function BuyerTicketsPage() {
           </div>
         )}
       </Card>
+
+      {/* Close confirmation modal */}
+      {closingTicket && (
+        <CloseConfirmModal
+          ticketTitle={closingTicket.title}
+          onConfirm={handleCloseConfirm}
+          onCancel={() => setClosingTicket(null)}
+          loading={closeLoading}
+        />
+      )}
     </DashboardLayout>
   );
 }
